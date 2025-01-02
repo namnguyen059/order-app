@@ -36,35 +36,33 @@ const getTotalReviews = async (req, res) => {
 };
 
 const getRevenueByPeriod = async (req, res) => {
-    try {
-        // Aggregate revenue grouped by orderDate
-        const revenueByDay = await Order.aggregate([
-          {
-            $group: {
-              _id: { $dateToString: { format: "%Y-%m-%d", date: "$orderDate" } }, // Group by day
-              totalRevenue: { $sum: "$totalAmount" }, // Sum up totalAmount
-            },
-          },
-          {
-            $sort: { _id: 1 }, // Sort by day in ascending order
-          },
-        ]);
-    
-        res.status(200).json({
-          success: true,
-          data: revenueByDay.map((item) => ({
-            date: item._id, // Date in "YYYY-MM-DD" format
-            totalRevenue: item.totalRevenue, // Revenue for that day
-          })),
-        });
-      } catch (e) {
-        console.log(e);
-        res.status(500).json({
-          success: false,
-          message: "Error occurred while fetching total revenue by day.",
-        });
-      }
+  try {
+    const revenueByMonth = await Order.aggregate([
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$orderDate" } }, // Group by month
+          totalRevenue: { $sum: "$totalAmount" }, // Sum up totalAmount
+        },
+      },
+      { $sort: { _id: 1 } }, // Sort by month in ascending order
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: revenueByMonth.map((item) => ({
+        month: item._id, // Month in "YYYY-MM" format
+        totalRevenue: item.totalRevenue, // Revenue for that month
+      })),
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Error occurred while fetching total revenue by month.",
+    });
+  }
 };
+
 
 // Get total number of orders
 const getTotalOrders = async (req, res) => {
@@ -103,23 +101,26 @@ const getRevenue = async (req, res) => {
   }
 };
 
-// Get orders grouped by date with total revenue
 const getOrdersByPeriod = async (req, res) => {
   try {
     const ordersByPeriod = await Order.aggregate([
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$orderDate" } },
-          count: { $sum: 1 },
-          revenue: { $sum: "$totalAmount" },
+          _id: { $dateToString: { format: "%Y-%m", date: "$orderDate" } }, // Group by month
+          count: { $sum: 1 }, // Total orders
+          //revenue: { $sum: "$totalAmount" }, // Total revenue
         },
       },
-      { $sort: { _id: 1 } },
+      { $sort: { _id: 1 } }, // Sort by month in ascending order
     ]);
 
     res.status(200).json({
       success: true,
-      data: ordersByPeriod,
+      data: ordersByPeriod.map((item) => ({
+        month: item._id, // Month in "YYYY-MM" format
+        totalOrders: item.count,
+        //totalRevenue: item.revenue,
+      })),
     });
   } catch (e) {
     console.log(e);
@@ -129,6 +130,7 @@ const getOrdersByPeriod = async (req, res) => {
     });
   }
 };
+
 
 const getProductsSummary = async (req, res) => {
   try {
